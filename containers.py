@@ -114,3 +114,80 @@ def exec_container(config, params, *args, **kwargs):
     return {'exec_id': exec_id, 'output': started}
 
 
+def pause_container(config, params, *args, **kwargs):
+    container_id = params.get('id')
+    if not container_id:
+        raise ConnectorError('Missing required input: id')
+    return invoke_rest_endpoint(config, '/containers/{0}/pause'.format(container_id), 'POST')
+
+
+def unpause_container(config, params, *args, **kwargs):
+    container_id = params.get('id')
+    if not container_id:
+        raise ConnectorError('Missing required input: id')
+    return invoke_rest_endpoint(config, '/containers/{0}/unpause'.format(container_id), 'POST')
+
+
+def container_stats(config, params, *args, **kwargs):
+    container_id = params.get('id')
+    stream = params.get('stream', False)
+    if not container_id:
+        raise ConnectorError('Missing required input: id')
+    return invoke_rest_endpoint(config, '/containers/{0}/stats'.format(container_id), 'GET',
+                                query_params={'stream': int(bool(stream))})
+
+
+def container_export(config, params, *args, **kwargs):
+    container_id = params.get('id')
+    if not container_id:
+        raise ConnectorError('Missing required input: id')
+    return invoke_rest_endpoint(config, '/containers/{0}/export'.format(container_id), 'GET',
+                                headers={'accept': 'application/octet-stream'})
+
+
+def container_commit(config, params, *args, **kwargs):
+    container_id = params.get('id')
+    repo = params.get('repo')
+    tag = params.get('tag', 'latest')
+    comment = params.get('comment')
+    author = params.get('author')
+    changes = params.get('changes')
+    pause = params.get('pause', True)
+    
+    if not container_id:
+        raise ConnectorError('Missing required input: id')
+    
+    query_params = {
+        'container': container_id,
+        'repo': repo,
+        'tag': tag,
+        'comment': comment,
+        'author': author,
+        'changes': changes,
+        'pause': int(bool(pause))
+    }
+    
+    return invoke_rest_endpoint(config, '/commit', 'POST', query_params=query_params)
+
+
+def update_container(config, params, *args, **kwargs):
+    container_id = params.get('id')
+    if not container_id:
+        raise ConnectorError('Missing required input: id')
+    
+    # Get update parameters
+    update_data = {}
+    if 'Memory' in params:
+        update_data['Memory'] = params['Memory']
+    if 'CpuShares' in params:
+        update_data['CpuShares'] = params['CpuShares']
+    if 'CpuQuota' in params:
+        update_data['CpuQuota'] = params['CpuQuota']
+    if 'CpuPeriod' in params:
+        update_data['CpuPeriod'] = params['CpuPeriod']
+    if 'RestartPolicy' in params:
+        update_data['RestartPolicy'] = params['RestartPolicy']
+    
+    return invoke_rest_endpoint(config, '/containers/{0}/update'.format(container_id), 'POST', data=update_data)
+
+

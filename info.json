@@ -73,6 +73,106 @@
                 "visible": true,
                 "editable": true,
                 "value": true
+            },
+            {
+                "title": "API Version",
+                "type": "select",
+                "name": "api_version",
+                "required": false,
+                "visible": true,
+                "editable": true,
+                "options": [
+                    "v1.40",
+                    "v1.41",
+                    "v1.42",
+                    "v1.43"
+                ],
+                "value": "v1.41"
+            },
+            {
+                "title": "Request Timeout (seconds)",
+                "type": "number",
+                "name": "timeout",
+                "required": false,
+                "visible": true,
+                "editable": true,
+                "value": 60
+            },
+            {
+                "title": "Registry Username",
+                "type": "text",
+                "name": "registry_username",
+                "required": false,
+                "visible": true,
+                "editable": true
+            },
+            {
+                "title": "Registry Password",
+                "type": "password",
+                "name": "registry_password",
+                "required": false,
+                "visible": true,
+                "editable": true
+            },
+            {
+                "title": "Registry Server",
+                "type": "text",
+                "name": "registry_server",
+                "required": false,
+                "visible": true,
+                "editable": true,
+                "value": "https://index.docker.io/v1/"
+            },
+            {
+                "title": "Certificate Path",
+                "type": "text",
+                "name": "cert_path",
+                "required": false,
+                "visible": true,
+                "editable": true
+            },
+            {
+                "title": "Key Path",
+                "type": "text",
+                "name": "key_path",
+                "required": false,
+                "visible": true,
+                "editable": true
+            },
+            {
+                "title": "CA Certificate Path",
+                "type": "text",
+                "name": "ca_cert_path",
+                "required": false,
+                "visible": true,
+                "editable": true
+            },
+            {
+                "title": "Rate Limit (requests per minute)",
+                "type": "number",
+                "name": "rate_limit",
+                "required": false,
+                "visible": true,
+                "editable": true,
+                "value": 60
+            },
+            {
+                "title": "Retry Attempts",
+                "type": "number",
+                "name": "retry_attempts",
+                "required": false,
+                "visible": true,
+                "editable": true,
+                "value": 3
+            },
+            {
+                "title": "Retry Delay (seconds)",
+                "type": "number",
+                "name": "retry_delay",
+                "required": false,
+                "visible": true,
+                "editable": true,
+                "value": 1
             }
         ]
     },
@@ -780,6 +880,268 @@
                     "type": "textarea",
                     "name": "filters",
                     "required": false,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "pause_container",
+            "title": "Pause Container",
+            "description": "Pause a container",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "unpause_container",
+            "title": "Unpause Container",
+            "description": "Unpause a container",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "container_stats",
+            "title": "Container Statistics",
+            "description": "Get container statistics",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Stream",
+                    "type": "checkbox",
+                    "name": "stream",
+                    "required": false,
+                    "visible": true,
+                    "editable": true,
+                    "value": false
+                }
+            ]
+        },
+        {
+            "operation": "container_export",
+            "title": "Export Container",
+            "description": "Export container filesystem",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "container_commit",
+            "title": "Commit Container",
+            "description": "Create image from container",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Repository",
+                    "type": "text",
+                    "name": "repo",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Tag",
+                    "type": "text",
+                    "name": "tag",
+                    "required": false,
+                    "visible": true,
+                    "editable": true,
+                    "value": "latest"
+                },
+                {
+                    "title": "Comment",
+                    "type": "text",
+                    "name": "comment",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Author",
+                    "type": "text",
+                    "name": "author",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "update_container",
+            "title": "Update Container",
+            "description": "Update container resource limits",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Memory (bytes)",
+                    "type": "number",
+                    "name": "Memory",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "CPU Shares",
+                    "type": "number",
+                    "name": "CpuShares",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "CPU Quota",
+                    "type": "number",
+                    "name": "CpuQuota",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "CPU Period",
+                    "type": "number",
+                    "name": "CpuPeriod",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "build_image",
+            "title": "Build Image",
+            "description": "Build image from Dockerfile",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Build Context (URL or path)",
+                    "type": "text",
+                    "name": "remote",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Dockerfile",
+                    "type": "text",
+                    "name": "dockerfile",
+                    "required": false,
+                    "visible": true,
+                    "editable": true,
+                    "value": "Dockerfile"
+                },
+                {
+                    "title": "Tag",
+                    "type": "text",
+                    "name": "t",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "No Cache",
+                    "type": "checkbox",
+                    "name": "nocache",
+                    "required": false,
+                    "visible": true,
+                    "editable": true,
+                    "value": false
+                },
+                {
+                    "title": "Pull Base Images",
+                    "type": "checkbox",
+                    "name": "pull",
+                    "required": false,
+                    "visible": true,
+                    "editable": true,
+                    "value": false
+                }
+            ]
+        },
+        {
+            "operation": "search_images",
+            "title": "Search Images",
+            "description": "Search for images on Docker Hub",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Search Term",
+                    "type": "text",
+                    "name": "term",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Limit",
+                    "type": "number",
+                    "name": "limit",
+                    "required": false,
+                    "visible": true,
+                    "editable": true,
+                    "value": 25
+                }
+            ]
+        },
+        {
+            "operation": "image_history",
+            "title": "Image History",
+            "description": "Get image history",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Image Name or ID",
+                    "type": "text",
+                    "name": "name",
+                    "required": true,
                     "visible": true,
                     "editable": true
                 }
