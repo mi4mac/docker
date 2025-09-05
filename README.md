@@ -13,7 +13,7 @@ Core Components
 - health_check.py: Health monitoring functionality
 
 Feature Modules
-- containers.py: Container lifecycle management (20 operations)
+- containers.py: Container lifecycle management (18 operations)
 - images.py: Docker image management (9 operations)  
 - networks.py: Network management (7 operations)
 - volumes.py: Volume management (5 operations)
@@ -40,7 +40,7 @@ Configuration & Authentication
   - Rate limiting (requests per minute)
 - Flexible Connection: Supports both HTTP and HTTPS protocols
 
-Container Management (20 Operations)
+Container Management (18 Operations)
 1. list_containers - List all containers (with optional "all" flag)
 2. inspect_container - Get detailed container information
 3. create_container - Create new containers with custom configuration
@@ -59,8 +59,6 @@ Container Management (20 Operations)
 16. container_export - Export container filesystem as tar archive
 17. container_commit - Create image from container changes
 18. update_container - Update container resource limits (CPU, memory)
-19. container_attach - Attach to container (streaming)
-20. container_wait - Wait for container to stop and return exit code
 
 Image Management (9 Operations)
 1. list_images - List all Docker images
@@ -139,7 +137,7 @@ The project includes sample implementation files (sample_*.py) demonstrating:
 
 Key Strengths
 -------------
-1. Comprehensive Coverage: 45+ Docker operations covering all major functionality
+1. Comprehensive Coverage: 43+ Docker operations covering all major functionality
 2. Production Ready: Robust error handling, logging, and retry mechanisms
 3. Security First: Advanced SSL/TLS, authentication, and rate limiting features
 4. API Compliance: Full Docker Engine API v1.40+ compliance with versioning

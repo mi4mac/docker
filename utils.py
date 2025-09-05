@@ -44,29 +44,33 @@ def _build_registry_auth(config):
 
 
 def _build_url(config, endpoint, query_params=None):
-    server_address = config.get('server_address')
-    port = config.get('port', '2376')
-    protocol = config.get('protocol', 'https')
-    api_version = config.get('api_version', 'v1.41')
-    
-    if not server_address:
-        raise ConnectorError('Missing required parameter: server_address')
-    if not endpoint.startswith('/'):
-        endpoint = '/' + endpoint
-    
-    # Add API version to endpoint
-    if not endpoint.startswith('/' + api_version):
-        endpoint = '/' + api_version + endpoint
-    
-    url = '{protocol}://{server_address}:{port}{endpoint}'.format(protocol=protocol.lower(),
-                                                                  server_address=server_address,
-                                                                  port=port,
-                                                                  endpoint=endpoint)
-    if query_params:
-        query = urlencode({k: v for k, v in query_params.items() if v is not None}, doseq=True)
-        if query:
-            url = url + '?' + query
-    return url
+    try:
+        server_address = config.get('server_address')
+        port = config.get('port', '2376')
+        protocol = config.get('protocol', 'https')
+        api_version = config.get('api_version', 'v1.41')
+        
+        if not server_address:
+            raise ConnectorError('Missing required parameter: server_address')
+        if not endpoint.startswith('/'):
+            endpoint = '/' + endpoint
+        
+        # Add API version to endpoint
+        if not endpoint.startswith('/' + api_version):
+            endpoint = '/' + api_version + endpoint
+        
+        url = '{protocol}://{server_address}:{port}{endpoint}'.format(protocol=protocol.lower(),
+                                                                      server_address=server_address,
+                                                                      port=port,
+                                                                      endpoint=endpoint)
+        if query_params:
+            query = urlencode({k: v for k, v in query_params.items() if v is not None}, doseq=True)
+            if query:
+                url = url + '?' + query
+        return url
+    except Exception as e:
+        logger.error('Error building URL: {0}'.format(str(e)))
+        raise ConnectorError('Error building URL: {0}'.format(str(e)))
 
 
 def _apply_rate_limit(config):
@@ -100,15 +104,24 @@ def _build_ssl_context(config):
     # Client certificate tuple
     cert = None
     if cert_path and key_path:
-        if os.path.exists(cert_path) and os.path.exists(key_path):
-            cert = (cert_path, key_path)
-        else:
-            logger.warning('Certificate or key file not found: {0}, {1}'.format(cert_path, key_path))
+        try:
+            if os.path.exists(cert_path) and os.path.exists(key_path):
+                cert = (cert_path, key_path)
+            else:
+                logger.warning('Certificate or key file not found: {0}, {1}'.format(cert_path, key_path))
+        except Exception as e:
+            logger.warning('Error checking certificate files: {0}'.format(str(e)))
     
     # CA certificate
     verify = verify_ssl
-    if ca_cert_path and os.path.exists(ca_cert_path):
-        verify = ca_cert_path
+    if ca_cert_path:
+        try:
+            if os.path.exists(ca_cert_path):
+                verify = ca_cert_path
+            else:
+                logger.warning('CA certificate file not found: {0}'.format(ca_cert_path))
+        except Exception as e:
+            logger.warning('Error checking CA certificate file: {0}'.format(str(e)))
     elif not verify_ssl:
         verify = False
     
@@ -116,28 +129,32 @@ def _build_ssl_context(config):
 
 
 def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None, query_params=None, timeout=None, use_registry_auth=False):
-    # Apply rate limiting
-    _apply_rate_limit(config)
-    
-    timeout = timeout or config.get('timeout', 60)
-    default_headers = {'accept': 'application/json'}
-    auth, auth_headers = _build_auth(config)
-    
-    if headers is None:
-        headers = {}
-    
-    # Add registry authentication if needed
-    if use_registry_auth:
-        registry_headers = _build_registry_auth(config)
-        auth_headers.update(registry_headers)
-    
-    # Merge headers with precedence to explicit headers
-    merged_headers = {**default_headers, **auth_headers, **headers}
+    try:
+        # Apply rate limiting
+        _apply_rate_limit(config)
+        
+        timeout = timeout or config.get('timeout', 60)
+        default_headers = {'accept': 'application/json'}
+        auth, auth_headers = _build_auth(config)
+        
+        if headers is None:
+            headers = {}
+        
+        # Add registry authentication if needed
+        if use_registry_auth:
+            registry_headers = _build_registry_auth(config)
+            auth_headers.update(registry_headers)
+        
+        # Merge headers with precedence to explicit headers
+        merged_headers = {**default_headers, **auth_headers, **headers}
 
-    # Build SSL context
-    verify, cert = _build_ssl_context(config)
-    
-    url = _build_url(config, endpoint, query_params)
+        # Build SSL context
+        verify, cert = _build_ssl_context(config)
+        
+        url = _build_url(config, endpoint, query_params)
+    except Exception as e:
+        logger.error('Error in invoke_rest_endpoint setup: {0}'.format(str(e)))
+        raise ConnectorError('Error setting up request: {0}'.format(str(e)))
     
     # Retry logic
     retry_attempts = config.get('retry_attempts', 3)
