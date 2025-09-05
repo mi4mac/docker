@@ -1,6 +1,6 @@
-from .utils import invoke_rest_endpoint
+from utils import invoke_rest_endpoint
 from connectors.core.connector import get_logger, ConnectorError
-from .constants import LOGGER_NAME
+from constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
 
