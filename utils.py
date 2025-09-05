@@ -5,7 +5,7 @@ import time
 import os
 from urllib.parse import urlencode
 from connectors.core.connector import get_logger, ConnectorError
-from constants import LOGGER_NAME
+from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
 

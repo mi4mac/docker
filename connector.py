@@ -1,9 +1,9 @@
 from connectors.core.connector import Connector
 from connectors.core.connector import get_logger, ConnectorError
 from django.utils.module_loading import import_string
-from operations import *
-from constants import LOGGER_NAME
-from health_check import health_check
+from .builtins import *
+from .constants import LOGGER_NAME
+from .health_check import health_check
 logger = get_logger(LOGGER_NAME)
 
 
