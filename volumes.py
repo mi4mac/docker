@@ -1,5 +1,5 @@
 from connectors.core.connector import get_logger, ConnectorError
-from .utils import invoke_rest_endpoint
+from .utils import invoke_rest_endpoint, validate_required_params, validate_volume_name, validate_json_param, validate_boolean_param
 from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)

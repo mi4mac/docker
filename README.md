@@ -1,7 +1,7 @@
 Docker Connector Summary
 
 Overview
-The Docker Connector v1.1.0 is a comprehensive FortiSOAR connector that provides full integration with the Docker Engine API. It enables FortiSOAR to interact with Docker containers, images, networks, and volumes through a robust set of 44 operations.
+The Docker Connector v1.3.0 is a comprehensive FortiSOAR connector that provides full integration with the Docker Engine API. It enables FortiSOAR to interact with Docker containers, images, networks, and volumes through a robust set of 50+ operations with enhanced validation and error handling.
 
 Architecture & Structure
 

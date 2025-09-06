@@ -3,6 +3,7 @@ import json
 import base64
 import time
 import os
+import re
 from urllib.parse import urlencode
 from connectors.core.connector import get_logger, ConnectorError
 from .constants import LOGGER_NAME
@@ -235,3 +236,100 @@ def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None
             raise ConnectorError('Docker Engine unavailable: {0}'.format(content))
         else:
             raise ConnectorError('HTTP {0}: {1}'.format(response.status_code, content))
+
+
+def validate_required_params(params, required_fields, operation_name):
+    """Validate that all required parameters are present and not empty"""
+    missing_fields = []
+    for field in required_fields:
+        if field not in params or params[field] is None or params[field] == '':
+            missing_fields.append(field)
+    
+    if missing_fields:
+        raise ConnectorError('Missing required parameters for {0}: {1}'.format(
+            operation_name, ', '.join(missing_fields)))
+
+
+def validate_container_id(container_id, operation_name):
+    """Validate container ID format"""
+    if not container_id:
+        raise ConnectorError('Container ID is required for {0}'.format(operation_name))
+    
+    # Basic validation - container IDs should be alphanumeric with possible hyphens
+    if not re.match(r'^[a-zA-Z0-9_-]+$', container_id):
+        raise ConnectorError('Invalid container ID format for {0}: {1}'.format(operation_name, container_id))
+
+
+def validate_image_name(image_name, operation_name):
+    """Validate image name format"""
+    if not image_name:
+        raise ConnectorError('Image name is required for {0}'.format(operation_name))
+    
+    # Basic validation for image names (repository:tag format)
+    if not re.match(r'^[a-zA-Z0-9._/-]+(:[a-zA-Z0-9._-]+)?$', image_name):
+        raise ConnectorError('Invalid image name format for {0}: {1}'.format(operation_name, image_name))
+
+
+def validate_network_name(network_name, operation_name):
+    """Validate network name format"""
+    if not network_name:
+        raise ConnectorError('Network name is required for {0}'.format(operation_name))
+    
+    # Network names should be alphanumeric with hyphens and underscores
+    if not re.match(r'^[a-zA-Z0-9_-]+$', network_name):
+        raise ConnectorError('Invalid network name format for {0}: {1}'.format(operation_name, network_name))
+
+
+def validate_volume_name(volume_name, operation_name):
+    """Validate volume name format"""
+    if not volume_name:
+        raise ConnectorError('Volume name is required for {0}'.format(operation_name))
+    
+    # Volume names should be alphanumeric with hyphens and underscores
+    if not re.match(r'^[a-zA-Z0-9_-]+$', volume_name):
+        raise ConnectorError('Invalid volume name format for {0}: {1}'.format(operation_name, volume_name))
+
+
+def validate_json_param(param_value, param_name, operation_name):
+    """Validate JSON parameter format"""
+    if param_value is None:
+        return None
+    
+    if isinstance(param_value, str):
+        try:
+            return json.loads(param_value)
+        except json.JSONDecodeError as e:
+            raise ConnectorError('Invalid JSON format for {0} in {1}: {2}'.format(
+                param_name, operation_name, str(e)))
+    
+    return param_value
+
+
+def validate_positive_integer(value, param_name, operation_name):
+    """Validate that a parameter is a positive integer"""
+    if value is None:
+        return None
+    
+    try:
+        int_value = int(value)
+        if int_value < 0:
+            raise ConnectorError('{0} must be a positive integer for {1}'.format(
+                param_name, operation_name))
+        return int_value
+    except (ValueError, TypeError):
+        raise ConnectorError('{0} must be a valid integer for {1}'.format(
+            param_name, operation_name))
+
+
+def validate_boolean_param(value, param_name, operation_name, default=False):
+    """Validate and convert boolean parameter"""
+    if value is None:
+        return default
+    
+    if isinstance(value, bool):
+        return value
+    
+    if isinstance(value, str):
+        return value.lower() in ('true', '1', 'yes', 'on')
+    
+    return bool(value)

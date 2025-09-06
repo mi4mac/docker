@@ -1,10 +1,6 @@
 from connectors.core.connector import get_logger, ConnectorError
-try:
-    from .utils import invoke_rest_endpoint
-    from .constants import LOGGER_NAME
-except ImportError:
-    from utils import invoke_rest_endpoint
-    from constants import LOGGER_NAME
+from .utils import invoke_rest_endpoint, validate_required_params, validate_network_name, validate_json_param
+from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
 
