@@ -51,7 +51,7 @@ def _build_url(config, endpoint, query_params=None):
         server_address = config.get('server_address')
         port = config.get('port', '2376')
         protocol = config.get('protocol', 'https')
-        api_version = config.get('api_version', 'v1.41')
+        api_version = config.get('api_version', 'v1.44')
         
         if not server_address:
             raise ConnectorError('Missing required parameter: server_address')
@@ -67,7 +67,20 @@ def _build_url(config, endpoint, query_params=None):
                                                                       port=port,
                                                                       endpoint=endpoint)
         if query_params:
-            query = urlencode({k: v for k, v in query_params.items() if v is not None}, doseq=True)
+            # Process query params - JSON parameters must be serialized as JSON strings
+            processed_params = {}
+            for k, v in query_params.items():
+                if v is not None:
+                    # If value is already a string (JSON-encoded), use it directly
+                    if isinstance(v, str):
+                        processed_params[k] = v
+                    # If value is dict or list, serialize as JSON string
+                    elif isinstance(v, (dict, list)):
+                        processed_params[k] = json.dumps(v)
+                    else:
+                        processed_params[k] = v
+            
+            query = urlencode(processed_params, doseq=True)
             if query:
                 url = url + '?' + query
         return url
@@ -260,13 +273,26 @@ def validate_required_params(params, required_fields, operation_name):
 
 
 def validate_container_id(container_id, operation_name):
-    """Validate container ID format"""
+    """Validate container ID format (supports short/long hex IDs, names, and partial IDs)"""
     if not container_id:
         raise ConnectorError('Container ID is required for {0}'.format(operation_name))
     
-    # Basic validation - container IDs should be alphanumeric with possible hyphens
-    if not re.match(r'^[a-zA-Z0-9_-]+$', container_id):
-        raise ConnectorError('Invalid container ID format for {0}: {1}'.format(operation_name, container_id))
+    # Docker accepts:
+    # - Short form: 12 hex characters (e.g., "abc123def456")
+    # - Long form: 64 hex characters
+    # - Partial ID: minimum 3 hex characters
+    # - Container names: alphanumeric with hyphens, underscores, dots, slashes
+    # - Docker Compose names: can contain underscores, dots, slashes
+    
+    # Check if it's a hex ID (short, long, or partial)
+    hex_pattern = r'^[a-f0-9]{3,64}$'
+    # Check if it's a container name (alphanumeric with common separators)
+    name_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$'
+    
+    if re.match(hex_pattern, container_id) or re.match(name_pattern, container_id):
+        return  # Valid format
+    
+    raise ConnectorError('Invalid container ID format for {0}: {1}. Must be hex ID (3-64 chars) or container name'.format(operation_name, container_id))
 
 
 def validate_image_name(image_name, operation_name):

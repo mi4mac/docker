@@ -10,9 +10,9 @@ def list_volumes(config, params, *args, **kwargs):
 
 
 def inspect_volume(config, params, *args, **kwargs):
+    validate_required_params(params, ['name'], 'inspect_volume')
     name = params.get('name')
-    if not name:
-        raise ConnectorError('Missing required input: name')
+    validate_volume_name(name, 'inspect_volume')
     return invoke_rest_endpoint(config, '/volumes/{0}'.format(name), 'GET')
 
 
@@ -34,16 +34,16 @@ def create_volume(config, params, *args, **kwargs):
 
 
 def remove_volume(config, params, *args, **kwargs):
+    validate_required_params(params, ['name'], 'remove_volume')
     name = params.get('name')
-    force = params.get('force', False)
-    if not name:
-        raise ConnectorError('Missing required input: name')
+    validate_volume_name(name, 'remove_volume')
+    force = validate_boolean_param(params.get('force', False), 'force', 'remove_volume', False)
     return invoke_rest_endpoint(config, '/volumes/{0}'.format(name), 'DELETE', query_params={'force': int(bool(force))})
 
 
 def prune_volumes(config, params, *args, **kwargs):
     filters = validate_json_param(params.get('filters'), 'filters', 'prune_volumes')
-    query_params = {'filters': filters} if filters else {}
+    query_params = {'filters': filters} if filters else None
     return invoke_rest_endpoint(config, '/volumes/prune', 'POST', query_params=query_params)
 
 

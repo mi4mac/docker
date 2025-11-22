@@ -1,12 +1,23 @@
 from connectors.core.connector import get_logger, ConnectorError
-from .utils import invoke_rest_endpoint, validate_required_params, validate_image_name, validate_boolean_param, validate_json_param
+from .utils import invoke_rest_endpoint, validate_required_params, validate_image_name, validate_boolean_param, validate_json_param, validate_positive_integer
 from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
 
 
 def list_images(config, params, *args, **kwargs):
-    return invoke_rest_endpoint(config, '/images/json', 'GET')
+    """List Docker images"""
+    all_flag = validate_boolean_param(params.get('all', False), 'all', 'list_images', False)
+    digests = validate_boolean_param(params.get('digests', False), 'digests', 'list_images', False)
+    filters = validate_json_param(params.get('filters'), 'filters', 'list_images')
+    query_params = {}
+    if all_flag:
+        query_params['all'] = int(bool(all_flag))
+    if digests:
+        query_params['digests'] = int(bool(digests))
+    if filters:
+        query_params['filters'] = filters
+    return invoke_rest_endpoint(config, '/images/json', 'GET', query_params=query_params if query_params else None)
 
 
 def pull_image(config, params, *args, **kwargs):
@@ -19,55 +30,97 @@ def pull_image(config, params, *args, **kwargs):
 
 
 def inspect_image(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'inspect_image')
     image_id = params.get('id')
-    if not image_id:
-        raise ConnectorError('Missing required input: id')
+    validate_image_name(image_id, 'inspect_image')
     return invoke_rest_endpoint(config, '/images/{0}/json'.format(image_id), 'GET')
 
 
 def remove_image(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'remove_image')
     image_id = params.get('id')
-    force = params.get('force', False)
-    if not image_id:
-        raise ConnectorError('Missing required input: id')
-    return invoke_rest_endpoint(config, '/images/{0}'.format(image_id), 'DELETE', query_params={'force': force})
+    validate_image_name(image_id, 'remove_image')
+    force = validate_boolean_param(params.get('force', False), 'force', 'remove_image', False)
+    noprune = validate_boolean_param(params.get('noprune', False), 'noprune', 'remove_image', False)
+    query_params = {'force': int(bool(force)), 'noprune': int(bool(noprune))}
+    return invoke_rest_endpoint(config, '/images/{0}'.format(image_id), 'DELETE', query_params=query_params)
 
 
 def tag_image(config, params, *args, **kwargs):
+    validate_required_params(params, ['id', 'repo'], 'tag_image')
     image_id = params.get('id')
+    validate_image_name(image_id, 'tag_image')
     repo = params.get('repo')
     tag = params.get('tag', 'latest')
-    if not image_id or not repo:
-        raise ConnectorError('Missing required inputs: id, repo')
     return invoke_rest_endpoint(config, '/images/{0}/tag'.format(image_id), 'POST', 
                                 query_params={'repo': repo, 'tag': tag})
 
 
 def prune_images(config, params, *args, **kwargs):
     filters = validate_json_param(params.get('filters'), 'filters', 'prune_images')
-    query_params = {'filters': filters} if filters else {}
+    query_params = {'filters': filters} if filters else None
     return invoke_rest_endpoint(config, '/images/prune', 'POST', query_params=query_params)
 
 
 def build_image(config, params, *args, **kwargs):
-    # Docker build via POST /build
-    # This is a complex operation that typically requires tar stream
-    # For now, we'll implement a basic version
-    dockerfile = params.get('dockerfile', 'Dockerfile')
-    context = params.get('context', '.')
-    tag = params.get('tag')
+    """
+    Build image from Dockerfile.
     
-    # Note: This is a simplified implementation
-    # Real Docker builds require tar stream upload
+    NOTE: This is a simplified implementation.
+    Full implementation requires tar stream upload of build context.
+    
+    For complete functionality, use Docker CLI or docker-py library.
+    """
+    remote = params.get('remote')  # Build context URL
+    dockerfile = params.get('dockerfile', 'Dockerfile')
+    tag = params.get('t') or params.get('tag')
+    
+    # Build parameters
+    nocache = validate_boolean_param(params.get('nocache', False), 'nocache', 'build_image', False)
+    pull = validate_boolean_param(params.get('pull', False), 'pull', 'build_image', False)
+    rm = validate_boolean_param(params.get('rm', True), 'rm', 'build_image', True)
+    forcerm = validate_boolean_param(params.get('forcerm', False), 'forcerm', 'build_image', False)
+    q = validate_boolean_param(params.get('q', False), 'q', 'build_image', False)
+    
+    query_params = {}
+    if remote:
+        query_params['remote'] = remote
+    if dockerfile:
+        query_params['dockerfile'] = dockerfile
+    if tag:
+        query_params['t'] = tag
+    if nocache:
+        query_params['nocache'] = int(bool(nocache))
+    if pull:
+        query_params['pull'] = int(bool(pull))
+    if rm:
+        query_params['rm'] = int(bool(rm))
+    if forcerm:
+        query_params['forcerm'] = int(bool(forcerm))
+    if q:
+        query_params['q'] = int(bool(q))
+    
+    # Additional build parameters (can be added as JSON in body)
+    buildargs = validate_json_param(params.get('buildargs'), 'buildargs', 'build_image')
+    labels = validate_json_param(params.get('labels'), 'labels', 'build_image')
+    networkmode = params.get('networkmode')
+    platform = params.get('platform')
+    
+    # Note: Real implementation would require tar stream upload
+    # This simplified version only works with remote URLs
     return invoke_rest_endpoint(config, '/build', 'POST', 
-                                query_params={'dockerfile': dockerfile, 't': tag})
+                                query_params=query_params if query_params else None,
+                                data={'buildargs': buildargs, 'labels': labels, 'networkmode': networkmode, 'platform': platform} if (buildargs or labels or networkmode or platform) else None)
 
 
 def search_images(config, params, *args, **kwargs):
+    validate_required_params(params, ['term'], 'search_images')
     term = params.get('term')
-    if not term:
-        raise ConnectorError('Missing required input: term')
-    return invoke_rest_endpoint(config, '/images/search', 'GET', query_params={'term': term})
+    limit = validate_positive_integer(params.get('limit'), 'limit', 'search_images')
+    query_params = {'term': term}
+    if limit:
+        query_params['limit'] = limit
+    return invoke_rest_endpoint(config, '/images/search', 'GET', query_params=query_params)
 
 
 def image_history(config, params, *args, **kwargs):

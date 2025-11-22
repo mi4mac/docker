@@ -18,7 +18,7 @@ def system_df(config, params, *args, **kwargs):
 
 
 def system_events(config, params, *args, **kwargs):
-    # For simplicity, we expose a snapshot using GET with filters
+    """Get system events snapshot with optional filtering"""
     filters = validate_json_param(params.get('filters'), 'filters', 'system_events')
     since = params.get('since')
     until = params.get('until')
@@ -35,7 +35,8 @@ def system_events(config, params, *args, **kwargs):
 def system_prune(config, params, *args, **kwargs):
     """Remove unused data (containers, networks, images, and build cache)"""
     filters = validate_json_param(params.get('filters'), 'filters', 'system_prune')
-    return invoke_rest_endpoint(config, '/system/prune', 'POST', query_params={'filters': filters})
+    query_params = {'filters': filters} if filters else None
+    return invoke_rest_endpoint(config, '/system/prune', 'POST', query_params=query_params)
 
 
 def ping(config, params, *args, **kwargs):

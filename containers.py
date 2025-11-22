@@ -6,8 +6,27 @@ logger = get_logger(LOGGER_NAME)
 
 
 def list_containers(config, params, *args, **kwargs):
+    """List Docker containers"""
     all_flag = validate_boolean_param(params.get('all', False), 'all', 'list_containers', False)
-    return invoke_rest_endpoint(config, '/containers/json', 'GET', query_params={'all': int(bool(all_flag))})
+    limit = validate_positive_integer(params.get('limit'), 'limit', 'list_containers')
+    size = validate_boolean_param(params.get('size', False), 'size', 'list_containers', False)
+    since = params.get('since')
+    before = params.get('before')
+    filters = validate_json_param(params.get('filters'), 'filters', 'list_containers')
+    
+    query_params = {'all': int(bool(all_flag))}
+    if limit:
+        query_params['limit'] = limit
+    if size:
+        query_params['size'] = int(bool(size))
+    if since:
+        query_params['since'] = since
+    if before:
+        query_params['before'] = before
+    if filters:
+        query_params['filters'] = filters
+    
+    return invoke_rest_endpoint(config, '/containers/json', 'GET', query_params=query_params)
 
 
 def inspect_container(config, params, *args, **kwargs):
@@ -71,15 +90,33 @@ def kill_container(config, params, *args, **kwargs):
 
 
 def container_logs(config, params, *args, **kwargs):
+    """Fetch container logs"""
     validate_required_params(params, ['id'], 'container_logs')
     container_id = params.get('id')
     validate_container_id(container_id, 'container_logs')
     stdout = validate_boolean_param(params.get('stdout', True), 'stdout', 'container_logs', True)
     stderr = validate_boolean_param(params.get('stderr', False), 'stderr', 'container_logs', False)
     tail = params.get('tail')
+    since = params.get('since')
+    until = params.get('until')
+    timestamps = validate_boolean_param(params.get('timestamps', False), 'timestamps', 'container_logs', False)
+    follow = validate_boolean_param(params.get('follow', False), 'follow', 'container_logs', False)
+    details = validate_boolean_param(params.get('details', False), 'details', 'container_logs', False)
+    
     query_params = {'stdout': int(bool(stdout)), 'stderr': int(bool(stderr))}
     if tail:
         query_params['tail'] = tail
+    if since:
+        query_params['since'] = since
+    if until:
+        query_params['until'] = until
+    if timestamps:
+        query_params['timestamps'] = int(bool(timestamps))
+    if follow:
+        query_params['follow'] = int(bool(follow))
+    if details:
+        query_params['details'] = int(bool(details))
+    
     return invoke_rest_endpoint(config, '/containers/{0}/logs'.format(container_id), 'GET',
                                 headers={'accept': 'text/plain'},
                                 query_params=query_params)
@@ -95,27 +132,53 @@ def rename_container(config, params, *args, **kwargs):
 
 def prune_containers(config, params, *args, **kwargs):
     filters = validate_json_param(params.get('filters'), 'filters', 'prune_containers')
-    query_params = {'filters': filters} if filters else {}
+    query_params = {'filters': filters} if filters else None
     return invoke_rest_endpoint(config, '/containers/prune', 'POST', query_params=query_params)
 
 
 def exec_container(config, params, *args, **kwargs):
+    """Execute a command in a running container"""
     validate_required_params(params, ['id', 'Cmd'], 'exec_container')
     container_id = params.get('id')
     validate_container_id(container_id, 'exec_container')
     cmd = params.get('Cmd')
+    
+    # Exec create parameters
+    attach_stdout = validate_boolean_param(params.get('AttachStdout', True), 'AttachStdout', 'exec_container', True)
+    attach_stderr = validate_boolean_param(params.get('AttachStderr', True), 'AttachStderr', 'exec_container', True)
+    tty = validate_boolean_param(params.get('Tty', False), 'Tty', 'exec_container', False)
+    privileged = validate_boolean_param(params.get('Privileged', False), 'Privileged', 'exec_container', False)
+    user = params.get('User')
+    env = params.get('Env')  # List of environment variables
+    working_dir = params.get('WorkingDir')
+    
     body = {
-        'AttachStdout': True,
-        'AttachStderr': True,
+        'AttachStdout': attach_stdout,
+        'AttachStderr': attach_stderr,
+        'Tty': tty,
+        'Privileged': privileged,
         'Cmd': cmd if isinstance(cmd, list) else [cmd]
     }
+    
+    if user:
+        body['User'] = user
+    if env:
+        body['Env'] = env if isinstance(env, list) else [env]
+    if working_dir:
+        body['WorkingDir'] = working_dir
+    
     # Create exec instance
     exec_create = invoke_rest_endpoint(config, '/containers/{0}/exec'.format(container_id), 'POST', data=body)
     exec_id = exec_create.get('Id')
     if not exec_id:
         raise ConnectorError('Failed to create exec: missing Id')
+    
+    # Exec start parameters
+    detach = validate_boolean_param(params.get('Detach', False), 'Detach', 'exec_container', False)
+    
     # Start exec
-    started = invoke_rest_endpoint(config, '/exec/{0}/start'.format(exec_id), 'POST', data={'Detach': False, 'Tty': False})
+    started = invoke_rest_endpoint(config, '/exec/{0}/start'.format(exec_id), 'POST', 
+                                    data={'Detach': detach, 'Tty': tty})
     return {'exec_id': exec_id, 'output': started}
 
 
@@ -252,9 +315,10 @@ def copy_from_container(config, params, *args, **kwargs):
     
     path = params.get('path')
     
-    return invoke_rest_endpoint(config, '/containers/{0}/copy'.format(container_id), 'POST',
-                                data={'Resource': path},
-                                headers={'accept': 'application/octet-stream'})
+    # Use /archive endpoint instead of deprecated /copy (since API v1.20+)
+    return invoke_rest_endpoint(config, '/containers/{0}/archive'.format(container_id), 'GET',
+                                query_params={'path': path},
+                                headers={'accept': 'application/x-tar'})
 
 
 def copy_to_container(config, params, *args, **kwargs):
