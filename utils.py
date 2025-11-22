@@ -4,13 +4,15 @@ import base64
 import time
 import os
 import re
+import threading
 from urllib.parse import urlencode
 from connectors.core.connector import get_logger, ConnectorError
 from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
 
-# Rate limiting storage
+# Rate limiting storage (thread-safe)
+_rate_limit_lock = threading.Lock()
 _request_times = []
 
 
@@ -75,24 +77,25 @@ def _build_url(config, endpoint, query_params=None):
 
 
 def _apply_rate_limit(config):
-    """Apply rate limiting based on configuration"""
+    """Apply rate limiting based on configuration (thread-safe)"""
     rate_limit = config.get('rate_limit', 60)  # requests per minute
     if rate_limit <= 0:
         return
     
-    current_time = time.time()
-    # Remove requests older than 1 minute
-    global _request_times
-    _request_times = [t for t in _request_times if current_time - t < 60]
-    
-    # If we're at the rate limit, wait
-    if len(_request_times) >= rate_limit:
-        sleep_time = 60 - (current_time - _request_times[0])
-        if sleep_time > 0:
-            logger.info('Rate limit reached, sleeping for {0:.2f} seconds'.format(sleep_time))
-            time.sleep(sleep_time)
-    
-    _request_times.append(current_time)
+    with _rate_limit_lock:
+        current_time = time.time()
+        # Remove requests older than 1 minute
+        global _request_times
+        _request_times = [t for t in _request_times if current_time - t < 60]
+        
+        # If we're at the rate limit, wait
+        if len(_request_times) >= rate_limit:
+            sleep_time = 60 - (current_time - _request_times[0])
+            if sleep_time > 0:
+                logger.info('Rate limit reached, sleeping for {0:.2f} seconds'.format(sleep_time))
+                time.sleep(sleep_time)
+        
+        _request_times.append(current_time)
 
 
 def _build_ssl_context(config):
@@ -160,6 +163,7 @@ def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None
     # Retry logic
     retry_attempts = config.get('retry_attempts', 3)
     retry_delay = config.get('retry_delay', 1)
+    response = None
     
     for attempt in range(retry_attempts):
         try:
@@ -207,7 +211,12 @@ def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None
                 raise ConnectorError('Cannot connect to Docker API: {0}'.format(endpoint))
         except Exception as e:
             logger.exception('Error invoking endpoint: {0}'.format(endpoint))
-            raise ConnectorError('Error invoking {0}: {1}'.format(endpoint, str(e)))
+            if attempt == retry_attempts - 1:
+                raise ConnectorError('Error invoking {0}: {1}'.format(endpoint, str(e)))
+            continue
+
+    if response is None:
+        raise ConnectorError('No response received from Docker API after {0} attempts'.format(retry_attempts))
 
     if response.ok:
         # Some Docker endpoints return plain text, others json

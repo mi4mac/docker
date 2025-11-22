@@ -1,5 +1,5 @@
 from connectors.core.connector import get_logger, ConnectorError
-from .utils import invoke_rest_endpoint, validate_required_params, validate_image_name, validate_boolean_param
+from .utils import invoke_rest_endpoint, validate_required_params, validate_image_name, validate_boolean_param, validate_json_param
 from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
@@ -44,8 +44,9 @@ def tag_image(config, params, *args, **kwargs):
 
 
 def prune_images(config, params, *args, **kwargs):
-    filters = params.get('filters')
-    return invoke_rest_endpoint(config, '/images/prune', 'POST', query_params={'filters': filters})
+    filters = validate_json_param(params.get('filters'), 'filters', 'prune_images')
+    query_params = {'filters': filters} if filters else {}
+    return invoke_rest_endpoint(config, '/images/prune', 'POST', query_params=query_params)
 
 
 def build_image(config, params, *args, **kwargs):

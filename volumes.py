@@ -19,8 +19,8 @@ def inspect_volume(config, params, *args, **kwargs):
 def create_volume(config, params, *args, **kwargs):
     name = params.get('Name')
     driver = params.get('Driver')
-    opts = params.get('DriverOpts')
-    labels = params.get('Labels')
+    opts = validate_json_param(params.get('DriverOpts'), 'DriverOpts', 'create_volume')
+    labels = validate_json_param(params.get('Labels'), 'Labels', 'create_volume')
     body = {}
     if name:
         body['Name'] = name
@@ -42,7 +42,8 @@ def remove_volume(config, params, *args, **kwargs):
 
 
 def prune_volumes(config, params, *args, **kwargs):
-    filters = params.get('filters')
-    return invoke_rest_endpoint(config, '/volumes/prune', 'POST', query_params={'filters': filters})
+    filters = validate_json_param(params.get('filters'), 'filters', 'prune_volumes')
+    query_params = {'filters': filters} if filters else {}
+    return invoke_rest_endpoint(config, '/volumes/prune', 'POST', query_params=query_params)
 
 

@@ -1,12 +1,12 @@
 from connectors.core.connector import get_logger, ConnectorError
-from .utils import invoke_rest_endpoint, validate_required_params, validate_container_id, validate_positive_integer, validate_boolean_param
+from .utils import invoke_rest_endpoint, validate_required_params, validate_container_id, validate_image_name, validate_positive_integer, validate_boolean_param, validate_json_param
 from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
 
 
 def list_containers(config, params, *args, **kwargs):
-    all_flag = params.get('all', False)
+    all_flag = validate_boolean_param(params.get('all', False), 'all', 'list_containers', False)
     return invoke_rest_endpoint(config, '/containers/json', 'GET', query_params={'all': int(bool(all_flag))})
 
 
@@ -33,19 +33,19 @@ def stop_container(config, params, *args, **kwargs):
 
 
 def remove_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'remove_container')
     container_id = params.get('id')
-    force = params.get('force', False)
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
+    validate_container_id(container_id, 'remove_container')
+    force = validate_boolean_param(params.get('force', False), 'force', 'remove_container', False)
     return invoke_rest_endpoint(config, '/containers/{0}'.format(container_id), 'DELETE', query_params={'force': int(bool(force))})
 
 
 def create_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['image'], 'create_container')
     image = params.get('image')
+    validate_image_name(image, 'create_container')
     name = params.get('name')
-    host_config = params.get('HostConfig')
-    if not image:
-        raise ConnectorError('Missing required input: image')
+    host_config = validate_json_param(params.get('HostConfig'), 'HostConfig', 'create_container')
     body = {'Image': image}
     if host_config:
         body['HostConfig'] = host_config
@@ -54,51 +54,56 @@ def create_container(config, params, *args, **kwargs):
 
 
 def restart_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'restart_container')
     container_id = params.get('id')
-    t = params.get('t')
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
-    return invoke_rest_endpoint(config, '/containers/{0}/restart'.format(container_id), 'POST', query_params={'t': t})
+    validate_container_id(container_id, 'restart_container')
+    timeout = validate_positive_integer(params.get('t'), 'timeout', 'restart_container')
+    return invoke_rest_endpoint(config, '/containers/{0}/restart'.format(container_id), 'POST', query_params={'t': timeout})
 
 
 def kill_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'kill_container')
     container_id = params.get('id')
+    validate_container_id(container_id, 'kill_container')
     signal = params.get('signal')
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
-    return invoke_rest_endpoint(config, '/containers/{0}/kill'.format(container_id), 'POST', query_params={'signal': signal})
+    query_params = {'signal': signal} if signal else {}
+    return invoke_rest_endpoint(config, '/containers/{0}/kill'.format(container_id), 'POST', query_params=query_params)
 
 
 def container_logs(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'container_logs')
     container_id = params.get('id')
-    stdout = int(bool(params.get('stdout', True)))
-    stderr = int(bool(params.get('stderr', False)))
+    validate_container_id(container_id, 'container_logs')
+    stdout = validate_boolean_param(params.get('stdout', True), 'stdout', 'container_logs', True)
+    stderr = validate_boolean_param(params.get('stderr', False), 'stderr', 'container_logs', False)
     tail = params.get('tail')
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
+    query_params = {'stdout': int(bool(stdout)), 'stderr': int(bool(stderr))}
+    if tail:
+        query_params['tail'] = tail
     return invoke_rest_endpoint(config, '/containers/{0}/logs'.format(container_id), 'GET',
                                 headers={'accept': 'text/plain'},
-                                query_params={'stdout': stdout, 'stderr': stderr, 'tail': tail})
+                                query_params=query_params)
 
 
 def rename_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['id', 'name'], 'rename_container')
     container_id = params.get('id')
+    validate_container_id(container_id, 'rename_container')
     name = params.get('name')
-    if not container_id or not name:
-        raise ConnectorError('Missing required inputs: id, name')
     return invoke_rest_endpoint(config, '/containers/{0}/rename'.format(container_id), 'POST', query_params={'name': name})
 
 
 def prune_containers(config, params, *args, **kwargs):
-    filters = params.get('filters')
-    return invoke_rest_endpoint(config, '/containers/prune', 'POST', query_params={'filters': filters})
+    filters = validate_json_param(params.get('filters'), 'filters', 'prune_containers')
+    query_params = {'filters': filters} if filters else {}
+    return invoke_rest_endpoint(config, '/containers/prune', 'POST', query_params=query_params)
 
 
 def exec_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['id', 'Cmd'], 'exec_container')
     container_id = params.get('id')
+    validate_container_id(container_id, 'exec_container')
     cmd = params.get('Cmd')
-    if not container_id or not cmd:
-        raise ConnectorError('Missing required inputs: id, Cmd')
     body = {
         'AttachStdout': True,
         'AttachStderr': True,
@@ -115,47 +120,46 @@ def exec_container(config, params, *args, **kwargs):
 
 
 def pause_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'pause_container')
     container_id = params.get('id')
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
+    validate_container_id(container_id, 'pause_container')
     return invoke_rest_endpoint(config, '/containers/{0}/pause'.format(container_id), 'POST')
 
 
 def unpause_container(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'unpause_container')
     container_id = params.get('id')
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
+    validate_container_id(container_id, 'unpause_container')
     return invoke_rest_endpoint(config, '/containers/{0}/unpause'.format(container_id), 'POST')
 
 
 def container_stats(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'container_stats')
     container_id = params.get('id')
-    stream = params.get('stream', False)
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
+    validate_container_id(container_id, 'container_stats')
+    stream = validate_boolean_param(params.get('stream', False), 'stream', 'container_stats', False)
     return invoke_rest_endpoint(config, '/containers/{0}/stats'.format(container_id), 'GET',
                                 query_params={'stream': int(bool(stream))})
 
 
 def container_export(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'container_export')
     container_id = params.get('id')
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
+    validate_container_id(container_id, 'container_export')
     return invoke_rest_endpoint(config, '/containers/{0}/export'.format(container_id), 'GET',
                                 headers={'accept': 'application/octet-stream'})
 
 
 def container_commit(config, params, *args, **kwargs):
+    validate_required_params(params, ['id'], 'container_commit')
     container_id = params.get('id')
+    validate_container_id(container_id, 'container_commit')
     repo = params.get('repo')
     tag = params.get('tag', 'latest')
     comment = params.get('comment')
     author = params.get('author')
     changes = params.get('changes')
-    pause = params.get('pause', True)
-    
-    if not container_id:
-        raise ConnectorError('Missing required input: id')
+    pause = validate_boolean_param(params.get('pause', True), 'pause', 'container_commit', True)
     
     query_params = {
         'container': container_id,
@@ -166,6 +170,8 @@ def container_commit(config, params, *args, **kwargs):
         'changes': changes,
         'pause': int(bool(pause))
     }
+    # Remove None values
+    query_params = {k: v for k, v in query_params.items() if v is not None}
     
     return invoke_rest_endpoint(config, '/commit', 'POST', query_params=query_params)
 
@@ -207,16 +213,16 @@ def attach_container(config, params, *args, **kwargs):
     validate_container_id(container_id, 'attach_container')
     
     # Get attachment parameters
-    stdout = int(bool(params.get('stdout', True)))
-    stderr = int(bool(params.get('stderr', True)))
-    stream = int(bool(params.get('stream', True)))
-    logs = int(bool(params.get('logs', False)))
+    stdout = validate_boolean_param(params.get('stdout', True), 'stdout', 'attach_container', True)
+    stderr = validate_boolean_param(params.get('stderr', True), 'stderr', 'attach_container', True)
+    stream = validate_boolean_param(params.get('stream', True), 'stream', 'attach_container', True)
+    logs = validate_boolean_param(params.get('logs', False), 'logs', 'attach_container', False)
     
     query_params = {
-        'stdout': stdout,
-        'stderr': stderr,
-        'stream': stream,
-        'logs': logs
+        'stdout': int(bool(stdout)),
+        'stderr': int(bool(stderr)),
+        'stream': int(bool(stream)),
+        'logs': int(bool(logs))
     }
     
     return invoke_rest_endpoint(config, '/containers/{0}/attach'.format(container_id), 'POST',

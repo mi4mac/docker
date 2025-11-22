@@ -1,6 +1,6 @@
 {
     "name": "docker",
-    "version": "1.3.0",
+    "version": "2.0.0",
     "label": "Docker",
     "description": "FortiSOAR connector for Docker Engine API.",
     "publisher": "mibe",
@@ -1242,6 +1242,86 @@
                     "type": "textarea",
                     "name": "filters",
                     "required": false,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "resize_container",
+            "title": "Resize Container TTY",
+            "description": "Resize a container's TTY",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Height",
+                    "type": "number",
+                    "name": "h",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Width",
+                    "type": "number",
+                    "name": "w",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "copy_from_container",
+            "title": "Copy From Container",
+            "description": "Copy files/folders from a container",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Path",
+                    "type": "text",
+                    "name": "path",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
+        },
+        {
+            "operation": "copy_to_container",
+            "title": "Copy To Container",
+            "description": "Copy files/folders to a container",
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Container ID or Name",
+                    "type": "text",
+                    "name": "id",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Path",
+                    "type": "text",
+                    "name": "path",
+                    "required": true,
                     "visible": true,
                     "editable": true
                 }

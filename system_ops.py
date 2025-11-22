@@ -19,10 +19,17 @@ def system_df(config, params, *args, **kwargs):
 
 def system_events(config, params, *args, **kwargs):
     # For simplicity, we expose a snapshot using GET with filters
-    filters = params.get('filters')
+    filters = validate_json_param(params.get('filters'), 'filters', 'system_events')
     since = params.get('since')
     until = params.get('until')
-    return invoke_rest_endpoint(config, '/events', 'GET', query_params={'filters': filters, 'since': since, 'until': until})
+    query_params = {}
+    if filters:
+        query_params['filters'] = filters
+    if since:
+        query_params['since'] = since
+    if until:
+        query_params['until'] = until
+    return invoke_rest_endpoint(config, '/events', 'GET', query_params=query_params if query_params else None)
 
 
 def system_prune(config, params, *args, **kwargs):
