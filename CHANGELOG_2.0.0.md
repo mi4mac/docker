@@ -1,173 +1,173 @@
 # Docker Connector v2.0.0 - Changelog
-## Erstellt: 2024-11-22
+## Created: 2024-11-22
 
 ---
 
-## 🎉 NEUE VERSION: 2.0.0
+## 🎉 NEW VERSION: 2.0.0
 
-### Übersicht
-Diese Version bringt umfangreiche Verbesserungen in Bezug auf Code-Qualität, Konsistenz, Thread-Safety und Validierung.
+### Overview
+This version brings extensive improvements in terms of code quality, consistency, thread-safety, and validation.
 
 ---
 
-## ✅ DURCHGEFÜHRTE ÄNDERUNGEN
+## ✅ CHANGES MADE
 
-### 1. Aufräumen & Strukturierung
-- ✅ **45 Platzhalter-Dateien gelöscht**
-  - Alle einzelnen Operations-Dateien mit nur `pass` wurden entfernt
-  - Alle Operationen sind bereits in konsolidierten Dateien implementiert:
-    - `containers.py` (23 Operationen)
-    - `images.py` (12 Operationen)
-    - `networks.py` (7 Operationen)
-    - `volumes.py` (5 Operationen)
-    - `system_ops.py` (7 Operationen)
+### 1. Cleanup & Structuring
+- ✅ **45 placeholder files deleted**
+  - All individual operation files containing only `pass` were removed
+  - All operations are already implemented in consolidated files:
+    - `containers.py` (23 operations)
+    - `images.py` (12 operations)
+    - `networks.py` (7 operations)
+    - `volumes.py` (5 operations)
+    - `system_ops.py` (7 operations)
 
-### 2. Kritische Verbesserungen
+### 2. Critical Improvements
 
-#### Thread-Safety für Rate Limiting
-- ✅ `utils.py`: Thread-Safe Rate Limiting hinzugefügt
-  - `threading.Lock` für `_request_times` Liste
-  - Verhindert Race Conditions bei gleichzeitigen Anfragen
+#### Thread-Safety for Rate Limiting
+- ✅ `utils.py`: Thread-Safe Rate Limiting added
+  - `threading.Lock` for `_request_times` list
+  - Prevents race conditions with concurrent requests
 
-#### Health Check korrigiert
-- ✅ `health_check.py`: Korrekte Status-Meldungen
-  - Gibt jetzt "Connector is Not Available" bei Fehlern zurück
-  - Verbesserte Fehlerbehandlung
+#### Health Check corrected
+- ✅ `health_check.py`: Correct status messages
+  - Now returns "Connector is Not Available" on errors
+  - Improved error handling
 
-#### Requirements.txt aktualisiert
-- ✅ `requirements.txt`: Dependencies hinzugefügt
+#### Requirements.txt updated
+- ✅ `requirements.txt`: Dependencies added
   - `requests>=2.28.0`
 
-#### Error Handling verbessert
-- ✅ `utils.py`: Besseres Error Handling
-  - `response` Initialisierung vor Retry-Schleife
-  - Prüfung ob `response` definiert ist
-  - Verbesserte Fehlermeldungen
+#### Error Handling improved
+- ✅ `utils.py`: Better error handling
+  - `response` initialization before retry loop
+  - Check if `response` is defined
+  - Improved error messages
 
-### 3. Validierung vereinheitlicht
+### 3. Validation unified
 
-#### Konsistente Validierung in allen Operations-Dateien
-- ✅ `containers.py`: Alle 23 Operationen verwenden jetzt Validierungsfunktionen
-  - `validate_required_params()` für alle erforderlichen Parameter
-  - `validate_container_id()` für Container-IDs
-  - `validate_boolean_param()` für Boolean-Parameter
-  - `validate_positive_integer()` für numerische Parameter
+#### Consistent validation in all operation files
+- ✅ `containers.py`: All 23 operations now use validation functions
+  - `validate_required_params()` for all required parameters
+  - `validate_container_id()` for container IDs
+  - `validate_boolean_param()` for boolean parameters
+  - `validate_positive_integer()` for numeric parameters
 
-#### JSON-Parameter validiert
-- ✅ `create_container()`: `HostConfig` wird jetzt als JSON validiert
-- ✅ `create_network()`: `Options` und `IPAM` werden jetzt als JSON validiert
-- ✅ `create_volume()`: `DriverOpts` und `Labels` werden jetzt als JSON validiert
-- ✅ `prune_*()`: Alle `filters` Parameter werden jetzt als JSON validiert
-- ✅ `system_events()`: `filters` wird jetzt als JSON validiert
+#### JSON parameters validated
+- ✅ `create_container()`: `HostConfig` is now validated as JSON
+- ✅ `create_network()`: `Options` and `IPAM` are now validated as JSON
+- ✅ `create_volume()`: `DriverOpts` and `Labels` are now validated as JSON
+- ✅ `prune_*()`: All `filters` parameters are now validated as JSON
+- ✅ `system_events()`: `filters` is now validated as JSON
 
-### 4. Neue Operationen in info.json
-- ✅ `resize_container`: Container TTY Größe ändern
-- ✅ `copy_from_container`: Dateien aus Container kopieren
-- ✅ `copy_to_container`: Dateien in Container kopieren
+### 4. New operations in info.json
+- ✅ `resize_container`: Change container TTY size
+- ✅ `copy_from_container`: Copy files from container
+- ✅ `copy_to_container`: Copy files to container
 
-### 5. Code-Verbesserungen
+### 5. Code improvements
 
 #### containers.py
-- ✅ Alle Operationen verwenden konsistente Validierung
-- ✅ Boolean-Parameter werden korrekt validiert
-- ✅ Query-Parameter werden sauber formatiert (None-Werte entfernt)
+- ✅ All operations use consistent validation
+- ✅ Boolean parameters are correctly validated
+- ✅ Query parameters are cleanly formatted (None values removed)
 
 #### networks.py
-- ✅ JSON-Parameter Validierung hinzugefügt
-- ✅ Konsistente Validierung für alle Operationen
-- ✅ `disconnect_network()`: `Force` Parameter Validierung hinzugefügt
+- ✅ JSON parameter validation added
+- ✅ Consistent validation for all operations
+- ✅ `disconnect_network()`: `Force` parameter validation added
 
 #### volumes.py
-- ✅ JSON-Parameter Validierung hinzugefügt
-- ✅ Konsistente Validierung für alle Operationen
+- ✅ JSON parameter validation added
+- ✅ Consistent validation for all operations
 
 #### images.py
-- ✅ Filter-Parameter Validierung hinzugefügt
-- ✅ Import für `validate_json_param` hinzugefügt
+- ✅ Filter parameter validation added
+- ✅ Import for `validate_json_param` added
 
 #### system_ops.py
-- ✅ `system_events()`: Filter-Validierung verbessert
+- ✅ `system_events()`: Filter validation improved
 
 ---
 
-## 📊 STATISTIKEN
+## 📊 STATISTICS
 
-### Dateien
-- **Vorher**: 57 Python-Dateien
-- **Nachher**: 12 Python-Dateien (10 Kern-Dateien + 2 Sample-Dateien)
-- **Gelöscht**: 45 Platzhalter-Dateien
+### Files
+- **Before**: 57 Python files
+- **After**: 12 Python files (10 core files + 2 sample files)
+- **Deleted**: 45 placeholder files
 
-### Code-Qualität
-- ✅ Alle Operationen verwenden konsistente Validierung
+### Code Quality
+- ✅ All operations use consistent validation
 - ✅ Thread-Safe Rate Limiting
-- ✅ Verbessertes Error Handling
-- ✅ JSON-Parameter werden validiert
-- ✅ Health Check korrigiert
+- ✅ Improved error handling
+- ✅ JSON parameters are validated
+- ✅ Health Check corrected
 
 ---
 
-## 🔧 TECHNISCHE ÄNDERUNGEN
+## 🔧 TECHNICAL CHANGES
 
-### Neue Imports
-- `threading` in `utils.py` für Thread-Safety
+### New Imports
+- `threading` in `utils.py` for thread-safety
 
-### Geänderte Funktionen
-- `_apply_rate_limit()`: Thread-Safe gemacht
-- `invoke_rest_endpoint()`: Verbessertes Error Handling
-- `health_check()`: Korrekte Status-Meldungen
+### Modified Functions
+- `_apply_rate_limit()`: Made thread-safe
+- `invoke_rest_endpoint()`: Improved error handling
+- `health_check()`: Correct status messages
 
-### Vereinheitlichte Validierung
-Alle Operationen verwenden jetzt:
+### Unified Validation
+All operations now use:
 - `validate_required_params()`
-- Typ-spezifische Validierungsfunktionen
-- `validate_json_param()` für JSON-Parameter
-- `validate_boolean_param()` für Boolean-Parameter
+- Type-specific validation functions
+- `validate_json_param()` for JSON parameters
+- `validate_boolean_param()` for boolean parameters
 
 ---
 
 ## 🐛 BUGFIXES
 
-1. **Thread-Safety**: Rate Limiting ist jetzt thread-safe
-2. **Health Check**: Gibt korrekte Status-Meldungen zurück
-3. **Error Handling**: `response` wird vor Verwendung initialisiert
-4. **JSON-Validierung**: Alle JSON-Parameter werden jetzt validiert
+1. **Thread-Safety**: Rate limiting is now thread-safe
+2. **Health Check**: Returns correct status messages
+3. **Error Handling**: `response` is initialized before use
+4. **JSON Validation**: All JSON parameters are now validated
 
 ---
 
-## 📝 MIGRATIONSHINWEISE
+## 📝 MIGRATION NOTES
 
-### Von v1.3.0 zu v2.0.0
+### From v1.3.0 to v2.0.0
 
-1. **Keine Breaking Changes**: Alle Operationen bleiben kompatibel
-2. **Bessere Validierung**: Ungültige Parameter werden jetzt früher erkannt
-3. **Thread-Safety**: Funktioniert jetzt korrekt in Multi-Threading-Umgebungen
-
----
-
-## ✅ GETESTET
-
-- ✅ Alle Operationen verwenden konsistente Validierung
-- ✅ JSON-Parameter werden korrekt validiert
-- ✅ Thread-Safety für Rate Limiting implementiert
-- ✅ Health Check gibt korrekte Meldungen zurück
-- ✅ Error Handling verbessert
+1. **No Breaking Changes**: All operations remain compatible
+2. **Better Validation**: Invalid parameters are now detected earlier
+3. **Thread-Safety**: Now works correctly in multi-threading environments
 
 ---
 
-## 🙏 DANKSAGUNGEN
+## ✅ TESTED
 
-Diese Version wurde basierend auf:
+- ✅ All operations use consistent validation
+- ✅ JSON parameters are correctly validated
+- ✅ Thread-safety for rate limiting implemented
+- ✅ Health Check returns correct messages
+- ✅ Error handling improved
+
+---
+
+## 🙏 ACKNOWLEDGMENTS
+
+This version was based on:
 - FortiSOAR 7.6.4 Best Practices
-- Docker Engine API Dokumentation
-- Code-Review und Verbesserungsvorschlägen
+- Docker Engine API Documentation
+- Code review and improvement suggestions
 
 ---
 
 **Version**: 2.0.0  
-**Datum**: 2024-11-22  
-**Status**: ✅ Produktionsbereit
+**Date**: 2024-11-22  
+**Status**: ✅ Production Ready
 
 ---
 
-**ENDE DES CHANGELOGS**
+**END OF CHANGELOG**
 
