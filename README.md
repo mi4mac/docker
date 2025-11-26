@@ -1,7 +1,7 @@
 Docker Connector Summary
 
 Overview
-The Docker Connector v1.3.0 is a comprehensive FortiSOAR connector that provides full integration with the Docker Engine API. It enables FortiSOAR to interact with Docker containers, images, networks, and volumes through a robust set of 50+ operations with enhanced validation and error handling.
+The Docker Connector v2.0.0 is a comprehensive FortiSOAR 7.6.4 connector that provides full integration with the Docker Engine API. It enables FortiSOAR to interact with Docker containers, images, networks, and volumes through a robust set of operations with enhanced validation, error handling, and configuration aligned to FortiSOAR best practices.
 
 Architecture & Structure
 
@@ -75,7 +75,7 @@ Connection Settings:
 - Server Address (required) - Docker Engine host
 - Port (default: 2376) - Docker Engine port
 - Protocol (HTTP/HTTPS) - Connection protocol
-- API Version (v1.40-v1.52) - Docker API version (recommended: v1.44 or higher; v1.40-v1.43 only for older Docker Engine versions)
+- API Version (v1.40-v1.52) - Docker API version. Recommended: v1.44 or higher (aligned with modern Docker Engine releases and FortiSOAR 7.6.4 deployments); v1.40-v1.43 are intended only for older Docker Engine versions that still expose these API levels.
 
 Authentication:
 - Username/Password - Basic authentication
@@ -107,7 +107,7 @@ Import Structure:
 - Package Structure: Proper Python package organization with __init__.py
 
 API Integration:
-- Docker Engine API: Compatible with Docker Engine API v1.44 and later (tested up to v1.52). Older versions v1.40-v1.43 are supported only when the Docker Engine still exposes these API versions.
+- Docker Engine API: Compatible with Docker Engine API v1.44 and later. This connector has been functionally tested with Docker Engine API versions up to v1.52 in FortiSOAR 7.6.4 environments. Older versions v1.40-v1.43 are supported only when the target Docker Engine still exposes these API versions.
 - RESTful Design: Standard HTTP methods (GET, POST, PUT, DELETE)
 - Query Parameters: Support for filtering, pagination, and options
 - Request/Response: JSON-based communication with fallback to text
