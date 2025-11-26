@@ -75,7 +75,7 @@ Connection Settings:
 - Server Address (required) - Docker Engine host
 - Port (default: 2376) - Docker Engine port
 - Protocol (HTTP/HTTPS) - Connection protocol
-- API Version (v1.40-v1.43) - Docker API version
+- API Version (v1.40-v1.52) - Docker API version (recommended: v1.44 or higher; v1.40-v1.43 only for older Docker Engine versions)
 
 Authentication:
 - Username/Password - Basic authentication
@@ -107,7 +107,7 @@ Import Structure:
 - Package Structure: Proper Python package organization with __init__.py
 
 API Integration:
-- Docker Engine API: Full compliance with Docker Engine API v1.40-v1.43
+- Docker Engine API: Compatible with Docker Engine API v1.44 and later (tested up to v1.52). Older versions v1.40-v1.43 are supported only when the Docker Engine still exposes these API versions.
 - RESTful Design: Standard HTTP methods (GET, POST, PUT, DELETE)
 - Query Parameters: Support for filtering, pagination, and options
 - Request/Response: JSON-based communication with fallback to text
