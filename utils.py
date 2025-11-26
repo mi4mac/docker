@@ -46,7 +46,7 @@ def _build_registry_auth(config):
     return {}
 
 
-def _build_url(config, endpoint, query_params=None):
+def _build_url(config, endpoint, query_params=None, use_api_version=True):
     try:
         server_address = config.get('server_address')
         port = config.get('port', '2376')
@@ -58,8 +58,8 @@ def _build_url(config, endpoint, query_params=None):
         if not endpoint.startswith('/'):
             endpoint = '/' + endpoint
         
-        # Add API version to endpoint
-        if not endpoint.startswith('/' + api_version):
+        # Add API version to endpoint unless explicitly disabled
+        if use_api_version and not endpoint.startswith('/' + api_version):
             endpoint = '/' + api_version + endpoint
         
         url = '{protocol}://{server_address}:{port}{endpoint}'.format(protocol=protocol.lower(),
@@ -145,7 +145,9 @@ def _build_ssl_context(config):
     return verify, cert
 
 
-def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None, query_params=None, timeout=None, use_registry_auth=False):
+def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None,
+                         query_params=None, timeout=None, use_registry_auth=False,
+                         use_api_version=True):
     try:
         # Apply rate limiting
         _apply_rate_limit(config)
@@ -168,7 +170,7 @@ def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None
         # Build SSL context
         verify, cert = _build_ssl_context(config)
         
-        url = _build_url(config, endpoint, query_params)
+        url = _build_url(config, endpoint, query_params, use_api_version=use_api_version)
     except Exception as e:
         logger.error('Error in invoke_rest_endpoint setup: {0}'.format(str(e)))
         raise ConnectorError('Error setting up request: {0}'.format(str(e)))
@@ -258,6 +260,146 @@ def invoke_rest_endpoint(config, endpoint, method='GET', data=None, headers=None
             raise ConnectorError('Docker Engine unavailable: {0}'.format(content))
         else:
             raise ConnectorError('HTTP {0}: {1}'.format(response.status_code, content))
+
+
+def invoke_binary_endpoint(config, endpoint, method='GET', body=None, headers=None,
+                           query_params=None, timeout=None, use_registry_auth=False,
+                           use_api_version=True, expect_json_response=False):
+    """
+    Invoke a Docker API endpoint that sends or receives binary data (e.g., tar streams).
+    - For upload-style endpoints (e.g., copy_to_container, images/load), pass binary bytes in `body`.
+    - For download-style endpoints (e.g., container_export, images/get), the response content is
+      returned as base64-encoded data in a JSON object.
+    """
+    try:
+        # Apply rate limiting
+        _apply_rate_limit(config)
+
+        timeout = timeout or config.get('timeout', 60)
+        default_headers = {}
+        auth, auth_headers = _build_auth(config)
+
+        if headers is None:
+            headers = {}
+
+        # Add registry authentication if needed
+        if use_registry_auth:
+            registry_headers = _build_registry_auth(config)
+            auth_headers.update(registry_headers)
+
+        # Merge headers with precedence to explicit headers
+        merged_headers = {**default_headers, **auth_headers, **headers}
+
+        # Build SSL context
+        verify, cert = _build_ssl_context(config)
+
+        url = _build_url(config, endpoint, query_params, use_api_version=use_api_version)
+    except Exception as e:
+        logger.error('Error in invoke_binary_endpoint setup: {0}'.format(str(e)))
+        raise ConnectorError('Error setting up binary request: {0}'.format(str(e)))
+
+    # Retry logic (mirrors invoke_rest_endpoint)
+    retry_attempts = config.get('retry_attempts', 3)
+    retry_delay = config.get('retry_delay', 1)
+    response = None
+
+    for attempt in range(retry_attempts):
+        try:
+            payload = None
+            if body is not None:
+                # Expect bytes/bytearray for binary payload; strings are encoded as UTF-8
+                if isinstance(body, (bytes, bytearray)):
+                    payload = body
+                elif isinstance(body, str):
+                    payload = body.encode('utf-8')
+                else:
+                    # Fallback: JSON-encode dict-like payloads if provided
+                    try:
+                        payload = json.dumps(body).encode('utf-8')
+                        if 'content-type' not in {k.lower() for k in merged_headers.keys()}:
+                            merged_headers['Content-Type'] = 'application/json'
+                    except Exception:
+                        raise ConnectorError('Invalid binary payload type for endpoint {0}'.format(endpoint))
+
+            response = requests.request(method=method, url=url, auth=auth, verify=verify, cert=cert,
+                                        data=payload, headers=merged_headers, timeout=timeout)
+
+            # If successful, break out of retry loop
+            if response.ok:
+                break
+
+            # If it's a client error (4xx), don't retry
+            if 400 <= response.status_code < 500:
+                break
+
+            # For server errors (5xx), retry if we have attempts left
+            if attempt < retry_attempts - 1:
+                logger.warning('Server error {0}, retrying in {1} seconds (attempt {2}/{3})'.format(
+                    response.status_code, retry_delay, attempt + 1, retry_attempts))
+                time.sleep(retry_delay)
+                continue
+
+        except requests.exceptions.Timeout:
+            if attempt < retry_attempts - 1:
+                logger.warning('Timeout connecting to {0}, retrying in {1} seconds (attempt {2}/{3})'.format(
+                    endpoint, retry_delay, attempt + 1, retry_attempts))
+                time.sleep(retry_delay)
+                continue
+            else:
+                logger.error('Timeout connecting to {0}'.format(endpoint))
+                raise ConnectorError('Timeout connecting to Docker API: {0}'.format(endpoint))
+        except requests.exceptions.ConnectionError:
+            if attempt < retry_attempts - 1:
+                logger.warning('Connection error to {0}, retrying in {1} seconds (attempt {2}/{3})'.format(
+                    endpoint, retry_delay, attempt + 1, retry_attempts))
+                time.sleep(retry_delay)
+                continue
+            else:
+                logger.error('Connection error to {0}'.format(endpoint))
+                raise ConnectorError('Cannot connect to Docker API: {0}'.format(endpoint))
+        except Exception as e:
+            logger.exception('Error invoking binary endpoint: {0}'.format(endpoint))
+            if attempt == retry_attempts - 1:
+                raise ConnectorError('Error invoking {0}: {1}'.format(endpoint, str(e)))
+            continue
+
+    if response is None:
+        raise ConnectorError('No response received from Docker API after {0} attempts'.format(retry_attempts))
+
+    if response.ok:
+        if expect_json_response:
+            try:
+                return response.json()
+            except ValueError:
+                return {'result': response.text}
+
+        # Return base64-encoded content for FortiSOAR-friendly handling
+        content_b64 = base64.b64encode(response.content).decode()
+        return {
+            'content': content_b64,
+            'content_type': response.headers.get('Content-Type', 'application/octet-stream'),
+            'status_code': response.status_code
+        }
+    else:
+        content = response.text
+        logger.error('HTTP {0} (binary): {1}'.format(response.status_code, content))
+
+        if response.status_code == 400:
+            raise ConnectorError('Bad Request (binary): {0}'.format(content))
+        elif response.status_code == 401:
+            raise ConnectorError('Unauthorized (binary): Check your authentication credentials')
+        elif response.status_code == 403:
+            raise ConnectorError('Forbidden (binary): Insufficient permissions for this operation')
+        elif response.status_code == 404:
+            raise ConnectorError('Resource not found (binary) for endpoint: {0}'.format(endpoint))
+        elif response.status_code == 409:
+            raise ConnectorError('Conflict (binary): {0}'.format(content))
+        elif response.status_code == 500:
+            raise ConnectorError('Docker Engine internal error (binary): {0}'.format(content))
+        elif response.status_code == 503:
+            raise ConnectorError('Docker Engine unavailable (binary): {0}'.format(content))
+        else:
+            raise ConnectorError('HTTP {0} (binary): {1}'.format(response.status_code, content))
 
 
 def validate_required_params(params, required_fields, operation_name):

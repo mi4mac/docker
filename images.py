@@ -1,5 +1,6 @@
 from connectors.core.connector import get_logger, ConnectorError
-from .utils import invoke_rest_endpoint, validate_required_params, validate_image_name, validate_boolean_param, validate_json_param, validate_positive_integer
+from .utils import invoke_rest_endpoint, invoke_binary_endpoint, validate_required_params, validate_image_name, validate_boolean_param, validate_json_param, validate_positive_integer
+import base64
 from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
@@ -141,11 +142,30 @@ def push_image(config, params, *args, **kwargs):
 
 
 def load_image(config, params, *args, **kwargs):
-    """Load an image from a tar archive"""
-    # Note: This is a simplified implementation
-    # Real implementation would require tar stream upload
-    return invoke_rest_endpoint(config, '/images/load', 'POST',
-                                headers={'accept': 'application/json'})
+    """Load an image from a tar archive.
+    
+    Expects a base64-encoded tar archive in the 'image_archive' parameter.
+    This aligns with Docker's POST /images/load API, which expects a tar
+    stream body and returns JSON.
+    """
+    validate_required_params(params, ['image_archive'], 'load_image')
+    archive_b64 = params.get('image_archive')
+    if not archive_b64:
+        raise ConnectorError('image_archive (base64-encoded tar) is required for load_image')
+    
+    try:
+        archive_bytes = base64.b64decode(archive_b64)
+    except Exception as e:
+        raise ConnectorError('Invalid base64 archive for load_image: {0}'.format(str(e)))
+    
+    return invoke_binary_endpoint(
+        config,
+        '/images/load',
+        'POST',
+        body=archive_bytes,
+        headers={'Content-Type': 'application/x-tar', 'accept': 'application/json'},
+        expect_json_response=True
+    )
 
 
 def save_image(config, params, *args, **kwargs):
@@ -154,5 +174,10 @@ def save_image(config, params, *args, **kwargs):
     image_name = params.get('name')
     validate_image_name(image_name, 'save_image')
     
-    return invoke_rest_endpoint(config, '/images/{0}/get'.format(image_name), 'GET',
-                                headers={'accept': 'application/octet-stream'})
+    # Return base64-encoded tar archive for the image
+    return invoke_binary_endpoint(
+        config,
+        '/images/{0}/get'.format(image_name),
+        'GET',
+        headers={'accept': 'application/octet-stream'}
+    )

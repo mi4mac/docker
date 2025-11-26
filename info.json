@@ -954,7 +954,7 @@
         {
             "operation": "container_export",
             "title": "Export Container",
-            "description": "Export container filesystem",
+            "description": "Export container filesystem as a base64-encoded tar archive",
             "enabled": true,
             "parameters": [
                 {
@@ -1067,7 +1067,7 @@
         {
             "operation": "build_image",
             "title": "Build Image",
-            "description": "Build image from Dockerfile",
+            "description": "Build image from Dockerfile using a remote build context URL (simplified implementation; for full build features, use Docker CLI or docker-py)",
             "enabled": true,
             "parameters": [
                 {
@@ -1291,7 +1291,7 @@
         {
             "operation": "copy_from_container",
             "title": "Copy From Container",
-            "description": "Copy files/folders from a container",
+            "description": "Copy files/folders from a container as a base64-encoded tar archive",
             "enabled": true,
             "parameters": [
                 {
@@ -1315,7 +1315,7 @@
         {
             "operation": "copy_to_container",
             "title": "Copy To Container",
-            "description": "Copy files/folders to a container",
+            "description": "Copy files/folders to a container from a base64-encoded tar archive",
             "enabled": true,
             "parameters": [
                 {
@@ -1327,9 +1327,17 @@
                     "editable": true
                 },
                 {
-                    "title": "Path",
+                    "title": "Path in Container",
                     "type": "text",
                     "name": "path",
+                    "required": true,
+                    "visible": true,
+                    "editable": true
+                },
+                {
+                    "title": "Archive (base64-encoded tar)",
+                    "type": "textarea",
+                    "name": "archive",
                     "required": true,
                     "visible": true,
                     "editable": true
@@ -1339,8 +1347,9 @@
         {
             "operation": "ping",
             "title": "Ping",
-            "description": "Ping the Docker daemon",
-            "enabled": true
+            "description": "Ping the Docker daemon using the version-less /_ping endpoint",
+            "enabled": true,
+            "parameters": []
         }
     ]
 }

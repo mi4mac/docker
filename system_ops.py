@@ -6,7 +6,8 @@ logger = get_logger(LOGGER_NAME)
 
 
 def get_version(config, params, *args, **kwargs):
-    return invoke_rest_endpoint(config, '/version', 'GET')
+    # Use a version-less endpoint for Docker's /version
+    return invoke_rest_endpoint(config, '/version', 'GET', use_api_version=False)
 
 
 def get_info(config, params, *args, **kwargs):
@@ -41,7 +42,8 @@ def system_prune(config, params, *args, **kwargs):
 
 def ping(config, params, *args, **kwargs):
     """Ping the Docker daemon"""
-    return invoke_rest_endpoint(config, '/_ping', 'GET')
+    # Use a version-less endpoint for Docker's /_ping
+    return invoke_rest_endpoint(config, '/_ping', 'GET', use_api_version=False)
 
 
 def auth(config, params, *args, **kwargs):

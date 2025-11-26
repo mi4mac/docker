@@ -16,10 +16,9 @@ def health_check(config=None, *args, **kwargs):
         if not server_address:
             return 'Connector is Not Available - Server address not configured'
         
-        # Test actual connectivity using the ping endpoint
+        # Test actual connectivity using the ping endpoint (version-less /_ping)
         try:
-            from .utils import invoke_rest_endpoint
-            result = invoke_rest_endpoint(config, '/_ping', 'GET', timeout=10)
+            result = invoke_rest_endpoint(config, '/_ping', 'GET', timeout=10, use_api_version=False)
             if result and 'OK' in str(result):
                 return 'Connector is Available - Docker API is reachable'
             else:

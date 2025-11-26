@@ -1,5 +1,6 @@
 from connectors.core.connector import get_logger, ConnectorError
-from .utils import invoke_rest_endpoint, validate_required_params, validate_container_id, validate_image_name, validate_positive_integer, validate_boolean_param, validate_json_param
+from .utils import invoke_rest_endpoint, invoke_binary_endpoint, validate_required_params, validate_container_id, validate_image_name, validate_positive_integer, validate_boolean_param, validate_json_param
+import base64
 from .constants import LOGGER_NAME
 
 logger = get_logger(LOGGER_NAME)
@@ -209,8 +210,13 @@ def container_export(config, params, *args, **kwargs):
     validate_required_params(params, ['id'], 'container_export')
     container_id = params.get('id')
     validate_container_id(container_id, 'container_export')
-    return invoke_rest_endpoint(config, '/containers/{0}/export'.format(container_id), 'GET',
-                                headers={'accept': 'application/octet-stream'})
+    # Return base64-encoded tar archive for FortiSOAR-friendly handling
+    return invoke_binary_endpoint(
+        config,
+        '/containers/{0}/export'.format(container_id),
+        'GET',
+        headers={'accept': 'application/octet-stream'}
+    )
 
 
 def container_commit(config, params, *args, **kwargs):
@@ -315,24 +321,47 @@ def copy_from_container(config, params, *args, **kwargs):
     
     path = params.get('path')
     
-    # Use /archive endpoint instead of deprecated /copy (since API v1.20+)
-    return invoke_rest_endpoint(config, '/containers/{0}/archive'.format(container_id), 'GET',
-                                query_params={'path': path},
-                                headers={'accept': 'application/x-tar'})
+    # Use /archive endpoint instead of deprecated /copy (since API v1.20+).
+    # Returns a base64-encoded tar archive.
+    return invoke_binary_endpoint(
+        config,
+        '/containers/{0}/archive'.format(container_id),
+        'GET',
+        query_params={'path': path},
+        headers={'accept': 'application/x-tar'}
+    )
 
 
 def copy_to_container(config, params, *args, **kwargs):
-    """Copy files/folders to a container"""
-    validate_required_params(params, ['id', 'path'], 'copy_to_container')
+    """Copy files/folders to a container.
+    
+    Expects a base64-encoded tar archive in the 'archive' parameter and the
+    target container path in 'path'. This aligns with Docker's
+    PUT /containers/{id}/archive API, which expects a tar stream body.
+    """
+    validate_required_params(params, ['id', 'path', 'archive'], 'copy_to_container')
     container_id = params.get('id')
     validate_container_id(container_id, 'copy_to_container')
     
     path = params.get('path')
+    archive_b64 = params.get('archive')
+    if not archive_b64:
+        raise ConnectorError('archive (base64-encoded tar) is required for copy_to_container')
     
-    # Note: This is a simplified implementation
-    # Real implementation would require tar stream upload
-    return invoke_rest_endpoint(config, '/containers/{0}/archive'.format(container_id), 'PUT',
-                                data={'path': path},
-                                headers={'accept': 'application/json'})
+    try:
+        archive_bytes = base64.b64decode(archive_b64)
+    except Exception as e:
+        raise ConnectorError('Invalid base64 archive for copy_to_container: {0}'.format(str(e)))
+    
+    # Upload tar archive to the container at the specified path
+    return invoke_binary_endpoint(
+        config,
+        '/containers/{0}/archive'.format(container_id),
+        'PUT',
+        body=archive_bytes,
+        query_params={'path': path},
+        headers={'Content-Type': 'application/x-tar', 'accept': 'application/json'},
+        expect_json_response=True
+    )
 
 
