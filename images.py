@@ -31,15 +31,25 @@ def pull_image(config, params, *args, **kwargs):
 
 
 def inspect_image(config, params, *args, **kwargs):
-    validate_required_params(params, ['id'], 'inspect_image')
-    image_id = params.get('id')
+    # Accept both 'id' and 'name' for compatibility with info.json and FortiSOAR UI
+    # Docker Engine API allows image name or ID; we normalize to image_id here.
+    if 'id' in params:
+        image_id = params.get('id')
+    else:
+        # Backward-compatible fallback if info.json uses 'name'
+        image_id = params.get('name')
+    validate_required_params({'id': image_id}, ['id'], 'inspect_image')
     validate_image_name(image_id, 'inspect_image')
     return invoke_rest_endpoint(config, '/images/{0}/json'.format(image_id), 'GET')
 
 
 def remove_image(config, params, *args, **kwargs):
-    validate_required_params(params, ['id'], 'remove_image')
-    image_id = params.get('id')
+    # Accept both 'id' and 'name' to align with info.json and Docker semantics
+    if 'id' in params:
+        image_id = params.get('id')
+    else:
+        image_id = params.get('name')
+    validate_required_params({'id': image_id}, ['id'], 'remove_image')
     validate_image_name(image_id, 'remove_image')
     force = validate_boolean_param(params.get('force', False), 'force', 'remove_image', False)
     noprune = validate_boolean_param(params.get('noprune', False), 'noprune', 'remove_image', False)
@@ -48,8 +58,12 @@ def remove_image(config, params, *args, **kwargs):
 
 
 def tag_image(config, params, *args, **kwargs):
-    validate_required_params(params, ['id', 'repo'], 'tag_image')
-    image_id = params.get('id')
+    # Accept both 'id' and 'name' to align with info.json and Docker semantics
+    if 'id' in params:
+        image_id = params.get('id')
+    else:
+        image_id = params.get('name')
+    validate_required_params({'id': image_id, 'repo': params.get('repo')}, ['id', 'repo'], 'tag_image')
     validate_image_name(image_id, 'tag_image')
     repo = params.get('repo')
     tag = params.get('tag', 'latest')

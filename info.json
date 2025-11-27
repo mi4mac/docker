@@ -644,7 +644,17 @@
             "operation": "list_networks",
             "title": "List Networks",
             "description": "List networks",
-            "enabled": true
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Filters (JSON string)",
+                    "type": "textarea",
+                    "name": "filters",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
         },
         {
             "operation": "inspect_network",
@@ -795,7 +805,17 @@
             "operation": "list_volumes",
             "title": "List Volumes",
             "description": "List volumes",
-            "enabled": true
+            "enabled": true,
+            "parameters": [
+                {
+                    "title": "Filters (JSON string)",
+                    "type": "textarea",
+                    "name": "filters",
+                    "required": false,
+                    "visible": true,
+                    "editable": true
+                }
+            ]
         },
         {
             "operation": "inspect_volume",

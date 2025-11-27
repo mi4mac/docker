@@ -6,7 +6,11 @@ logger = get_logger(LOGGER_NAME)
 
 
 def list_volumes(config, params, *args, **kwargs):
-    return invoke_rest_endpoint(config, '/volumes', 'GET')
+    # Docker Engine API supports optional 'filters' for listing volumes.
+    # We accept an optional JSON string or object for filters and pass it through.
+    filters = validate_json_param(params.get('filters'), 'filters', 'list_volumes') if params else None
+    query_params = {'filters': filters} if filters else None
+    return invoke_rest_endpoint(config, '/volumes', 'GET', query_params=query_params)
 
 
 def inspect_volume(config, params, *args, **kwargs):

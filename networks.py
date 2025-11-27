@@ -6,7 +6,11 @@ logger = get_logger(LOGGER_NAME)
 
 
 def list_networks(config, params, *args, **kwargs):
-    return invoke_rest_endpoint(config, '/networks', 'GET')
+    # Docker Engine API supports optional 'filters' for listing networks.
+    # We accept an optional JSON string or object for filters and pass it through.
+    filters = validate_json_param(params.get('filters'), 'filters', 'list_networks') if params else None
+    query_params = {'filters': filters} if filters else None
+    return invoke_rest_endpoint(config, '/networks', 'GET', query_params=query_params)
 
 
 def inspect_network(config, params, *args, **kwargs):
